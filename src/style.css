@@ -1,0 +1,1081 @@
+/* 오븐 멍 — 세로 고정, 다크 기본, 오븐 불빛만 따뜻하게 */
+:root {
+  --bg: #191210;
+  --bg-soft: #241a15;
+  --panel: #2b201a;
+  --text: #efe4d4;
+  --text-dim: #a8988a;
+  --accent: #e8913f;
+  --accent-deep: #c26a1f;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#app {
+  height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+#app > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+canvas {
+  touch-action: none;
+  display: block;
+}
+
+/* ---- 공용 ---- */
+.stage-header {
+  display: grid;
+  grid-template-columns: 56px 1fr 56px;
+  align-items: center;
+  padding: 10px 12px;
+}
+
+.stage-title {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.btn {
+  appearance: none;
+  border: none;
+  border-radius: 16px;
+  padding: 13px 20px;
+  font-size: 16px;
+  font-family: inherit;
+  font-weight: 600;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.2s, box-shadow 0.3s;
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+.btn:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.btn-primary {
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  color: #241305;
+}
+
+.btn-big {
+  padding: 16px 24px;
+  font-size: 17px;
+  border-radius: 20px;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 20px;
+  padding: 8px;
+}
+
+.btn-round {
+  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  font-size: 22px;
+}
+
+.btn-round.off {
+  opacity: 0.45;
+}
+
+.btn.glow {
+  box-shadow: 0 0 22px rgba(232, 145, 63, 0.65);
+}
+
+.hint {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 14px;
+  margin: 10px 16px;
+  min-height: 20px;
+}
+
+/* 새 항목 점 — 절대 위치라 라벨 폭에 영향을 주지 않는다.
+   덕분에 점 유무와 상관없이 글자가 버튼 중앙에 고정된다. */
+.label-dot {
+  position: relative;
+  display: inline-block;
+}
+
+.new-dot {
+  position: absolute;
+  top: -3px;
+  left: calc(100% + 5px);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(232, 145, 63, 0.8);
+}
+
+/* ---- 타이틀 ---- */
+.title-view {
+  justify-content: space-between;
+  padding: 24px;
+}
+
+.title-hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.title-emoji {
+  font-size: 84px;
+  filter: drop-shadow(0 12px 30px rgba(232, 145, 63, 0.35));
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.title-view h1 {
+  margin: 0;
+  font-size: 40px;
+  letter-spacing: 0.06em;
+}
+
+.title-tag {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 15px;
+}
+
+.fast-badge {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--accent);
+  background: rgba(232, 145, 63, 0.12);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+.title-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 12px;
+}
+
+/* ---- 단계 화면의 무대 — 배경 그림(bg) · 실시간 3D(gl) · 2D 덧그림(fg)을 겹친다 (render/live/stageView.ts) ---- */
+.live-wrap {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.live-wrap canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.live-bg,
+.live-gl {
+  pointer-events: none;
+}
+
+/* ---- 반죽 ---- */
+.knead-view {
+  padding-bottom: 16px;
+}
+
+.ingredient-tray {
+  display: flex;
+  flex-wrap: wrap; /* 빵마다 재료가 4~5개라 좁은 화면에선 두 줄로 */
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 16px;
+  transition: opacity 0.5s;
+}
+
+.ingredient-tray[hidden] {
+  display: none;
+}
+
+.ingredient-tray.done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chip {
+  appearance: none;
+  border: none;
+  font-family: inherit;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: grab;
+  touch-action: none;
+  position: relative;
+  z-index: 5;
+}
+
+.chip-emoji {
+  font-size: 26px;
+}
+
+.chip.dragging {
+  z-index: 10;
+  cursor: grabbing;
+}
+
+.chip.used {
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.knead-continue {
+  margin: 0 16px;
+}
+
+/* ---- 빵 고르기 ---- */
+.choose-view {
+  padding-bottom: 16px;
+}
+
+.choose-view > .btn-big {
+  margin: 8px 16px 0;
+}
+
+/* ---- 틀에 넣기 ---- */
+.mold-view {
+  padding-bottom: 16px;
+}
+
+.mold-next {
+  margin: 0 16px;
+}
+
+/* ---- 모양 빚기 ---- */
+.form-view {
+  padding-bottom: 16px;
+}
+
+.form-steps {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  flex-wrap: wrap;
+}
+
+.form-step {
+  font-size: 13px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text-dim);
+  transition: background 0.3s, color 0.3s;
+}
+
+.form-step[hidden] {
+  display: none;
+}
+
+.form-step-count {
+  background: none;
+  padding: 5px 2px;
+}
+
+.form-step.current {
+  background: #3a2a1d;
+  color: var(--text);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.form-step.done {
+  color: var(--accent);
+}
+
+.form-step.done::after {
+  content: ' ✓';
+}
+
+.form-next {
+  margin: 0 16px;
+}
+
+/* ---- 토핑 올리기 ---- */
+.shaping-view {
+  padding-bottom: 16px;
+}
+
+.pick-canvas {
+  width: min(64vw, 280px);
+  aspect-ratio: 1;
+  align-self: center;
+  flex: 0 1 auto;
+}
+
+.topping-preview {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.topping-combo {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  margin: 4px 16px 10px;
+  min-height: 24px;
+}
+
+.bread-cards {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 16px;
+  overflow-y: auto;
+}
+
+.bread-card {
+  appearance: none;
+  font-family: inherit;
+  text-align: left;
+  border: 2px solid transparent;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 20px;
+  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  grid-template-areas: 'emoji name' 'emoji desc' 'emoji time';
+  column-gap: 14px;
+  row-gap: 3px;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.12s;
+}
+
+.bread-card:active {
+  transform: scale(0.98);
+}
+
+.bread-card.selected {
+  border-color: var(--accent);
+  background: #33241a;
+}
+
+.bread-card-emoji {
+  grid-area: emoji;
+  font-size: 42px;
+  align-self: center;
+  justify-self: center;
+}
+
+img.bread-card-emoji {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
+}
+
+.bread-card-name {
+  grid-area: name;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.bread-card-desc {
+  grid-area: desc;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.bread-card-time {
+  grid-area: time;
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.bread-card.locked {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.bread-card.locked .bread-card-desc {
+  color: var(--accent);
+}
+
+/* ---- 토핑 고르기 ---- */
+.topping-picker {
+  padding: 4px 16px 0;
+}
+
+.topping-label {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.topping-limit {
+  margin-left: 4px;
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.topping-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-bottom: 8px;
+  scrollbar-width: none;
+}
+
+.topping-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.topping-tab {
+  appearance: none;
+  flex: 0 0 auto;
+  border: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.topping-tab.selected {
+  background: var(--panel);
+  color: var(--text);
+}
+
+.tab-count {
+  color: var(--accent);
+}
+
+.topping-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.topping-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.topping-chip {
+  appearance: none;
+  font-family: inherit;
+  flex: 0 0 auto;
+  border: 2px solid transparent;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 8px 12px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.topping-chip-emoji {
+  font-size: 22px;
+}
+
+/* 속에 넣는 소(앙금) 표시 */
+.topping-chip {
+  position: relative;
+}
+
+.topping-chip-badge {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 6px;
+  background: #5a3a2a;
+  color: #f3dcc4;
+}
+
+.topping-chip.selected {
+  border-color: var(--accent);
+  background: #33241a;
+}
+
+/* 토핑 2개가 찼을 때 나머지 칩 */
+.topping-chip.dimmed {
+  opacity: 0.35;
+}
+
+.shaping-view > .btn-big {
+  margin: 8px 16px 0;
+}
+
+/* ---- 굽기 ---- */
+.baking-view {
+  padding-bottom: 14px;
+}
+
+.oven-frame {
+  flex: 1;
+  min-height: 0;
+  margin: 4px 18px 0;
+  background: linear-gradient(180deg, #33281f, #241a13);
+  border-radius: 26px;
+  padding: 16px 16px 10px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.05), 0 14px 40px rgba(0, 0, 0, 0.5);
+}
+
+.oven-window {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 3px solid #171009;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.7);
+}
+
+.gl-canvas,
+.fog-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.fog-canvas {
+  z-index: 2;
+}
+
+.score-canvas {
+  z-index: 3;
+  touch-action: none;
+}
+
+.score-canvas[hidden] {
+  display: none;
+}
+
+.oven-handle {
+  height: 10px;
+  margin: 10px 30px 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #4a3a2c, #2b1f16);
+}
+
+.bake-status {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 14px;
+  margin: 12px 16px 8px;
+  min-height: 20px;
+}
+
+.bake-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 0 16px;
+}
+
+.bake-controls .btn-primary {
+  flex: 1;
+  max-width: 220px;
+  padding: 14px 20px;
+  border-radius: 999px;
+}
+
+/* ---- 꺼내기 ---- */
+.finish-view {
+  padding-bottom: 16px;
+}
+
+.finish-stage {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  min-height: 0;
+}
+
+.finish-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.finish-canvas[hidden] {
+  display: none;
+}
+
+.finish-panel {
+  padding: 0 16px;
+}
+
+.finish-caption {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  margin: 8px 0 14px;
+}
+
+.finish-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ---- 도감 ---- */
+.album-view {
+  padding-bottom: 16px;
+}
+
+.album-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 8px 16px 16px;
+  align-content: start;
+}
+
+.album-card {
+  appearance: none;
+  border: none;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.12s ease;
+}
+
+.album-card:active {
+  transform: scale(0.97);
+}
+
+.album-card canvas {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  background: var(--bg-soft);
+}
+
+.album-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.album-new {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--accent);
+  color: #241305;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+.album-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.album-empty p:first-child {
+  font-size: 52px;
+  margin: 0;
+}
+
+.album-view > .btn-big {
+  margin: 8px 16px 0;
+}
+
+/* ---- 상점 ---- */
+.shop-view {
+  padding-bottom: 16px;
+}
+
+.shop-progress {
+  text-align: center;
+  margin: 0 16px 8px;
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.shop-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 16px 8px;
+}
+
+.shop-group {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.shop-group span {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.topping-card {
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  grid-template-areas: 'emoji name state' 'emoji desc state';
+  column-gap: 12px;
+  row-gap: 2px;
+  align-items: center;
+}
+
+.topping-card.locked {
+  opacity: 0.45;
+}
+
+.topping-emoji {
+  grid-area: emoji;
+  font-size: 34px;
+  text-align: center;
+}
+
+.topping-name {
+  grid-area: name;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.topping-desc {
+  grid-area: desc;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.topping-state {
+  grid-area: state;
+  font-size: 11px;
+  color: var(--accent);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.shop-hint {
+  text-align: center;
+  margin: 0 16px 4px;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.shop-view > .btn-big {
+  margin: 8px 16px 0;
+}
+
+/* ---- 도감 상세 ---- */
+.detail-canvas-wrap {
+  border-radius: 16px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.detail-canvas-wrap canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.detail-title {
+  margin: 0;
+  font-size: 19px;
+  text-align: center;
+}
+
+.detail-section h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.detail-ingredients {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.detail-chip {
+  background: var(--panel);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.detail-date {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+/* ---- 설정 / 확인 시트 ---- */
+.confirm-msg {
+  margin: 4px 0 6px;
+  font-size: 16px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  /* 짧은 화면에서 시트 위쪽(닫기 버튼 포함)이 잘리지 않도록 */
+  max-height: 86dvh;
+  overflow-y: auto;
+  background: var(--bg-soft);
+  border-radius: 24px 24px 0 0;
+  padding: 22px 22px calc(22px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sheet h2 {
+  margin: 0 0 4px;
+  font-size: 19px;
+}
+
+.slider-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.slider-row input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.slider-row input[type='checkbox'] {
+  justify-self: end;
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
+}
+
+.slider-row select {
+  font-family: inherit;
+  background: var(--panel);
+  color: var(--text);
+  border: none;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.sheet-hint {
+  margin: -6px 0 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* ---- 개발자 모드 ---- */
+.dev-badge {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #8fd0ff;
+  background: rgba(80, 160, 230, 0.14);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+/* 모든 화면에 떠 있는 🛠 버튼 — #app 밖(body)에 붙어 스테이지가 바뀌어도 남는다.
+   아래쪽은 토핑 칩·버튼이 많아 가리므로, 모든 헤더에서 비어 있는 오른쪽 칸에 둔다 */
+.dev-fab {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  right: max(12px, calc((100vw - 480px) / 2 + 12px));
+  z-index: 90;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(143, 208, 255, 0.4);
+  background: rgba(20, 40, 60, 0.85);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.dev-panel section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dev-panel h3 {
+  margin: 0;
+  font-size: 13px;
+  color: #8fd0ff;
+}
+
+.dev-status {
+  margin: -6px 0 0;
+  font-size: 12px;
+  color: var(--text-dim);
+  min-height: 16px;
+}
+
+.dev-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dev-btn {
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+
+.dev-json {
+  max-height: 240px;
+  overflow: auto;
+  margin: 0;
+  padding: 10px;
+  font-size: 10px;
+  line-height: 1.4;
+  background: var(--bg);
+  border-radius: 10px;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.dev-fps {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 3;
+  font: 600 11px ui-monospace, monospace;
+  color: #8fd0ff;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 6px;
+  padding: 2px 6px;
+  pointer-events: none;
+}
+
+/* 반죽 건너뛰기 — 헤더 오른쪽 칸은 🛠 버튼(.dev-fab)이 덮으므로 그 왼쪽에 고정 */
+.dev-skip {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  right: calc(max(12px, calc((100vw - 480px) / 2 + 12px)) + 46px);
+  z-index: 90;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  font-size: 18px;
+}

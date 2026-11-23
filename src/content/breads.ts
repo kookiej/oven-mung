@@ -1,0 +1,271 @@
+import type { BreadDef, BreadId, Speed } from '../types';
+import { timeDivisor } from '../dev/devState';
+
+/** 속도 설정 배율 — 굽기 시작 시점에 durationMs로 고정된다 */
+export const SPEED_MULT: Record<Speed, number> = { slow: 1.5, normal: 1, fast: 0.5 };
+
+export const SPEED_LABEL: Record<Speed, string> = {
+  slow: '느리게',
+  normal: '보통',
+  fast: '빠르게',
+};
+
+/** 해금 순서대로 늘어놓는다 — 빵 고르기 화면과 도감 정렬이 이 순서를 따른다 */
+export const BREADS: BreadDef[] = [
+  {
+    id: 'shokupan',
+    name: '식빵',
+    emoji: '🍞',
+    desc: '천천히 부풀어 오르는 모습이 제일 예뻐요',
+    bakeMinutes: 6,
+    spring: 0.35,
+    crackDepth: 0.045,
+    geometry: 'panLoaf',
+    vessel: 'loafTin',
+    fill: 'place',
+    doughColor: '#e8dcc0',
+    goldColor: '#d9a45b',
+    brownColor: '#8a4b26',
+    crumbColor: '#f3ead6',
+    ingredients: ['breadFlour', 'milk', 'butter', 'sugar', 'yeast'],
+    unlockAt: 0,
+  },
+  {
+    id: 'cookie',
+    name: '쿠키',
+    emoji: '🍪',
+    desc: '금방 구워지고 크랙이 시원하게 갈라져요',
+    bakeMinutes: 3,
+    spring: 0.14,
+    crackDepth: 0.09,
+    geometry: 'disc',
+    vessel: 'tray',
+    doughColor: '#d9b98a',
+    goldColor: '#c68f4e',
+    brownColor: '#7a4a20',
+    crumbColor: '#e6c896',
+    ingredients: ['cakeFlour', 'butter', 'sugar', 'egg'],
+    unlockAt: 0,
+  },
+  {
+    id: 'croissant',
+    name: '크루아상',
+    emoji: '🥐',
+    desc: '결 사이로 버터 냄새가 나는 것 같아요',
+    bakeMinutes: 4.5,
+    spring: 0.22,
+    crackDepth: 0.06,
+    geometry: 'crescent',
+    vessel: 'tray',
+    doughColor: '#ecd9b0',
+    goldColor: '#d59a44',
+    brownColor: '#8f4f1e',
+    crumbColor: '#f5e8c8',
+    ingredients: ['breadFlour', 'butter', 'milk', 'yeast'],
+    unlockAt: 2,
+  },
+  {
+    id: 'pancake',
+    midScore: true,
+    name: '팬케이크',
+    emoji: '🥞',
+    desc: '보글보글 기포가 올라오면 거의 다 된 거예요',
+    bakeMinutes: 2.5,
+    spring: 0.1,
+    crackDepth: 0.01,
+    geometry: 'disc',
+    vessel: 'fryingPan',
+    thickness: 0.45,
+    doughColor: '#ecd7a8',
+    goldColor: '#d9a352',
+    brownColor: '#8a5424',
+    crumbColor: '#f4e4bf',
+    ingredients: ['flour', 'milk', 'egg', 'bakingPowder'],
+    unlockAt: 3,
+  },
+  {
+    id: 'bagel',
+    name: '베이글',
+    emoji: '🥯',
+    desc: '쫀득하게 부풀어서 반질반질 윤이 나요',
+    bakeMinutes: 3.5,
+    spring: 0.18,
+    crackDepth: 0.025,
+    geometry: 'ring',
+    vessel: 'tray',
+    doughColor: '#e3cfa2',
+    goldColor: '#cf9a4d',
+    brownColor: '#81451c',
+    crumbColor: '#f0e2bd',
+    ingredients: ['breadFlour', 'water', 'honey', 'yeast'],
+    unlockAt: 4,
+  },
+  {
+    id: 'flatbread',
+    name: '플랫브레드',
+    emoji: '🫓',
+    desc: '얇게 편 반죽이 군데군데 볼록 부풀어요',
+    bakeMinutes: 3,
+    spring: 0.08,
+    crackDepth: 0.02,
+    geometry: 'disc',
+    vessel: 'tray',
+    thickness: 0.4,
+    doughColor: '#eadcbc',
+    goldColor: '#d8a862',
+    brownColor: '#8b5a2b',
+    crumbColor: '#f3e8cf',
+    ingredients: ['flour', 'water', 'oliveOil', 'salt'],
+    unlockAt: 5,
+  },
+  {
+    id: 'baguette',
+    name: '바게트',
+    emoji: '🥖',
+    desc: '칼집 사이가 쩍 벌어지는 소리가 좋아요',
+    bakeMinutes: 7,
+    spring: 0.3,
+    crackDepth: 0.1,
+    geometry: 'loaf',
+    vessel: 'tray',
+    doughColor: '#e6d6b2',
+    goldColor: '#cf9647',
+    brownColor: '#7d4318',
+    crumbColor: '#f2e6c9',
+    ingredients: ['flour', 'water', 'salt', 'yeast'],
+    unlockAt: 7,
+  },
+  {
+    id: 'cupcake',
+    name: '컵케이크',
+    emoji: '🧁',
+    desc: '컵 위로 봉긋하게 솟아오르는 게 귀여워요',
+    bakeMinutes: 4,
+    spring: 0.3,
+    crackDepth: 0.03,
+    geometry: 'cup',
+    vessel: 'muffinTin',
+    doughColor: '#f0dcae',
+    goldColor: '#dfaa5a',
+    brownColor: '#93582a',
+    crumbColor: '#f7ebcd',
+    ingredients: ['cakeFlour', 'egg', 'sugar', 'butter', 'vanilla'],
+    unlockAt: 8,
+  },
+  {
+    id: 'pretzel',
+    name: '프레첼',
+    emoji: '🥨',
+    desc: '진한 갈색이 될수록 더 예뻐지는 빵이에요',
+    bakeMinutes: 4,
+    spring: 0.12,
+    crackDepth: 0.035,
+    geometry: 'crescent',
+    vessel: 'tray',
+    doughColor: '#d8b686',
+    goldColor: '#b87a37',
+    brownColor: '#5e3312',
+    crumbColor: '#ecd9ae',
+    ingredients: ['flour', 'water', 'yeast', 'coarseSalt'],
+    unlockAt: 10,
+  },
+  {
+    id: 'doughnut',
+    name: '도넛',
+    emoji: '🍩',
+    desc: '동그란 구멍 둘레로 폭신하게 부풀어요',
+    bakeMinutes: 3,
+    spring: 0.2,
+    crackDepth: 0.015,
+    geometry: 'ring',
+    vessel: 'doughnutPan',
+    doughColor: '#ecd6a6',
+    goldColor: '#d49a4e',
+    brownColor: '#8a4f22',
+    crumbColor: '#f5e6c4',
+    ingredients: ['flour', 'milk', 'egg', 'sugar', 'yeast'],
+    unlockAt: 12,
+  },
+  {
+    id: 'waffle',
+    name: '와플',
+    emoji: '🧇',
+    desc: '격자 무늬마다 색이 조금씩 다르게 나요',
+    bakeMinutes: 3,
+    spring: 0.1,
+    crackDepth: 0.01,
+    geometry: 'square',
+    vessel: 'waffleIron',
+    pattern: 'grid',
+    doughColor: '#efd9a6',
+    goldColor: '#dba350',
+    brownColor: '#8e5620',
+    crumbColor: '#f6e6c2',
+    ingredients: ['flour', 'milk', 'egg', 'butter'],
+    unlockAt: 15,
+  },
+  {
+    id: 'pie',
+    name: '파이',
+    emoji: '🥧',
+    desc: '바삭한 격자 사이로 사과 필링이 보글보글',
+    bakeMinutes: 6,
+    spring: 0.08,
+    crackDepth: 0.05,
+    geometry: 'disc',
+    vessel: 'pieDish',
+    // 바닥 크러스트(판) + 사과 필링 + 격자 크러스트 — 묽은 반죽이 아니라 덩어리 반죽을 밀어 담는다
+    fill: 'place',
+    thickness: 1.35,
+    doughColor: '#eed9ad',
+    goldColor: '#d99f4f',
+    brownColor: '#8c4f1f',
+    crumbColor: '#f3e1b9',
+    ingredients: ['cakeFlour', 'butter', 'coldWater', 'sugar'],
+    unlockAt: 18,
+  },
+  {
+    id: 'cake',
+    name: '케이크',
+    emoji: '🎂',
+    desc: '오래 기다린 만큼 폭신하게 차올라요',
+    bakeMinutes: 7,
+    spring: 0.25,
+    crackDepth: 0.035,
+    geometry: 'cylinder',
+    vessel: 'cakeTin',
+    doughColor: '#f1ddb0',
+    goldColor: '#dea85a',
+    brownColor: '#915a2c',
+    crumbColor: '#f8ecd0',
+    ingredients: ['cakeFlour', 'egg', 'sugar', 'butter', 'milk'],
+    unlockAt: 22,
+  },
+];
+
+/** 칼집을 내는 굽기 진행도 — 윗면은 굳었지만 아직 덜 익은 때 */
+export const SCORE_AT = 0.35;
+
+export function getBread(id: BreadId): BreadDef {
+  const def = BREADS.find((b) => b.id === id);
+  if (!def) throw new Error(`unknown bread: ${id}`);
+  return def;
+}
+
+/** 정렬용 — 도감은 빵 종류 순으로 늘어놓는다 */
+export function breadOrder(id: BreadId): number {
+  const i = BREADS.findIndex((b) => b.id === id);
+  return i < 0 ? BREADS.length : i;
+}
+
+export function isBreadUnlocked(def: BreadDef, albumCount: number): boolean {
+  return albumCount >= def.unlockAt;
+}
+
+export function unlockedBreads(albumCount: number): BreadDef[] {
+  return BREADS.filter((b) => isBreadUnlocked(b, albumCount));
+}
+
+export function bakeDurationMs(def: BreadDef, speed: Speed): number {
+  return (def.bakeMinutes * 60_000 * SPEED_MULT[speed]) / timeDivisor();
+}

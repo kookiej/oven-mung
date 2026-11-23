@@ -1,0 +1,9 @@
+GPU ONEAPI ['Intel(R) Arc(TM) Graphics']
+HDRI C:\Program Files\WindowsApps\BlenderFoundation.Blender_5.3.0.0_x64__ppwjx1n5r4v9t\Blender\5.3\datafiles\studiolights/world\interior.exr
+ok bread/bagel_0
+ok bread/bagel_1
+ok bread/bagel_2
+ok bread/bagel_3
+fit ['베이글'] 1.45
+ok models\bagel.glb 320732
+done

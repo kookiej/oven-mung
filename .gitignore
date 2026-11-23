@@ -1,0 +1,12 @@
+node_modules/
+dist/
+android/
+ios/
+.DS_Store
+*.local
+
+# Blender 백업·파이썬 캐시
+*.blend1
+__pycache__/
+# GitHub 파일 한도(100MB)를 넘는 원본 에셋 파일 — 따로 보관
+renders/blender_cartoon/assets/oven_mung_assets.blend
